@@ -1,1 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>THE FINALS - Stat Tracker</title>
+  <style>
+    :root {
+      --bg-color: #0f0f12;
+      --card-bg: #18181c;
+      --accent-color: #d62828;
+      --accent-hover: #f77f00;
+      --text-main: #f1f1f1;
+      --text-muted: #a0a0a0;
+      --border-color: #2a2a30;
+    }
 
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      padding: 40px 20px;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+
+    header h1 {
+      font-size: 2.5rem;
+      color: var(--accent-color);
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+
+    header p {
+      color: var(--text-muted);
+      margin-top: 5px;
+    }
+
+    .card {
+      background-color: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 24px;
+      margin-bottom: 24px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+
+    .card h2 {
+      font-size: 1.3rem;
+      margin-bottom: 16px;
+      border-bottom: 2px solid var(--accent-color);
+      display: inline-block;
+      padding-bottom: 4px;
+    }
+
+    .search-group {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    input[type="text"] {
+      flex: 1;
+      padding: 12px 16px;
+      border-radius: 6px;
+      border: 1px solid var(--border-color);
+      background-color: #0d0d0f;
+      color: var(--text-main);
+      font-size: 1rem;
+      outline: none;
+    }
+
+    input[type="text"]:focus {
+      border-color: var(--accent-color);
+    }
+
+    button {
+      padding: 12px 24px;
+      background-color: var(--accent-color);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 1rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+    }
+
+    button:hover {
+      background-color: var(--accent-hover);
+    }
+
+    .result-box {
+      margin-top: 12px;
+      padding: 12px;
+      border-radius: 6px;
+      background-color: #121215;
+      color: var(--text-muted);
+    }
+
+    .stat-highlight {
+      font-size: 1.2rem;
+      color: var(--text-main);
+      margin-top: 6px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 16px;
+    }
+
+    th, td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    th {
+      background-color: #121215;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    tr:hover {
+      background-color: #202026;
+    }
+
+    .loading {
+      color: var(--accent-hover);
+      font-style: italic;
+    }
+
+    .error {
+      color: #ff4d4d;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <header>
+      <h1>🏆 The Finals Tracker</h1>
+      <p>Look up Steam playtime and live global rankings</p>
+    </header>
+
+    <!-- Steam Playtime Lookup -->
+    <div class="card">
+      <h2>Steam Playtime Search</h2>
+      <div class="search-group">
+        <input type="text" id="steamIdInput" placeholder="Enter 64-bit Steam ID (e.g. 76561198...)" />
+        <button onclick="fetchPlaytime()">Search</button>
+      </div>
+      <div id="playtimeResult" class="result-box">
+        Enter a Steam ID above to view playtime.
+      </div>
+    </div>
+
+    <!-- Leaderboard -->
+    <div class="card">
+      <h2>Top Global Leaderboard</h2>
+      <button onclick="fetchLeaderboard()">Load Leaderboard</button>
+      <div id="leaderboardContainer">
+        <p class="result-box" style="margin-top: 16px;">Click the button to load top players.</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 1. Fetch Steam Playtime from backend API
+    async function fetchPlaytime() {
+      const steamId = document.getElementById('steamIdInput').value.trim();
+      const resultDiv = document.getElementById('playtimeResult');
+
+      if (!steamId) {
+        resultDiv.innerHTML = '<span class="error">Please enter a valid Steam ID.</span>';
+        return;
+      }
+
+      resultDiv.innerHTML = '<span class="loading">Fetching Steam data...</span>';
+
+      try {
+        const response = await fetch(`/api/steam/playtime/${steamId}`);
+        const data = await response.json();
+
+        if (response.ok) {
+          resultDiv.innerHTML = `
+            <div><strong>Game:</strong> ${data.game}</div>
+            <div class="stat-highlight"><strong>Total Hours Played:</strong> ${data.playtimeHours} hrs (${data.playtimeMinutes} mins)</div>
+          `;
+        } else {
+          resultDiv.innerHTML = `<span class="error">${data.message || data.error}</span>`;
+        }
+      } catch (err) {
+        resultDiv.innerHTML = '<span class="error">Unable to connect to backend server.</span>';
+      }
+    }
+
+    // 2. Fetch Global Leaderboard from backend API
+    async function fetchLeaderboard() {
+      const container = document.getElementById('leaderboardContainer');
+      container.innerHTML = '<p class="result-box loading" style="margin-top:16px;">Loading leaderboard rankings...</p>';
+
+      try {
+        const response = await fetch('/api/leaderboard');
+        const data = await response.json();
+
+        if (response.ok && data.top10) {
+          let tableHtml = `
+            <table>
+              <thead>
+                <tr>
+                  <th>Rank</th>
+                  <th>Name</th>
+                  <th>Cashouts / Rank Score</th>
+                </tr>
+              </thead>
+              <tbody>
+          `;
+
+          data.top10.forEach((player, index) => {
+            tableHtml += `
+              <tr>
+                <td>#${player.rank || index + 1}</td>
+                <td><strong>${player.name || player.steamName || 'Unknown Player'}</strong></td>
+                <td>${player.cashouts ? '$' + player.cashouts.toLocaleString() : (player.rankScore || 'N/A')}</td>
+              </tr>
+            `;
+          });
+
+          tableHtml += '</tbody></table>';
+          container.innerHTML = tableHtml;
+        } else {
+          container.innerHTML = `<p class="result-box error">Failed to load leaderboard data.</p>`;
+        }
+      } catch (err) {
+        container.innerHTML = `<p class="result-box error">Error connecting to leaderboard API.</p>`;
+      }
+    }
+  </script>
+</body>
+</html>
