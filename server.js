@@ -9,21 +9,17 @@ const STEAM_API_KEY = process.env.STEAM_API_KEY;
 // The Finals App ID on Steam
 const THE_FINALS_APP_ID = 2073850;
 
-// Enable JSON middleware for parsing requests
+// Middleware
 app.use(express.json());
 
-// Enable CORS so your future frontend website can talk to this backend
+// Serves static files (index.html) from the "public" directory
+app.use(express.static('public'));
+
+// Enable CORS headers
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
   next();
-});
-
-// ==========================================================
-// Root Endpoint (Quick Health Check)
-// ==========================================================
-app.get('/', (req, res) => {
-  res.send('The Finals Stat Tracker API is up and running!');
 });
 
 // ==========================================================
@@ -52,7 +48,7 @@ app.get('/api/steam/playtime/:steamId', async (req, res) => {
 
     if (!finalsGame) {
       return res.status(404).json({
-        message: 'The Finals not found in this library. Check if the Steam profile or game stats are set to Private.',
+        message: 'The Finals not found in this library. Make sure your Steam profile stats are set to Public.',
       });
     }
 
@@ -69,12 +65,12 @@ app.get('/api/steam/playtime/:steamId', async (req, res) => {
 });
 
 // ==========================================================
-// 2. Fetch Leaderboard Data (Public API)
+// 2. Fetch Leaderboard Data (Community API)
 // ==========================================================
 app.get('/api/leaderboard', async (req, res) => {
   try {
-    // Queries the community leaderboard endpoint
-    const response = await axios.get('https://api.thefinals-api.com/v1/leaderboard/crossplay');
+    // Queries public community API endpoint for crossplay leaderboards
+    const response = await axios.get('https://api.the-finals-leaderboard.com/v1/leaderboard/cb2');
 
     res.json({
       success: true,
@@ -87,12 +83,7 @@ app.get('/api/leaderboard', async (req, res) => {
   }
 });
 
-// ==========================================================
-// Start the Web Server
-// ==========================================================
+// Start Server
 app.listen(PORT, () => {
-  console.log(`\n🚀 Server running successfully!`);
-  console.log(`🔗 Local URL: http://localhost:${PORT}`);
-  console.log(`📡 Steam Endpoint: http://localhost:${PORT}/api/steam/playtime/YOUR_STEAM_ID`);
-  console.log(`📡 Leaderboard Endpoint: http://localhost:${PORT}/api/leaderboard\n`);
+  console.log(`\n🚀 Server running! Open http://localhost:${PORT} in your browser.\n`);
 });
